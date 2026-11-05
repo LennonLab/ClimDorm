@@ -1,0 +1,7 @@
+event,min_value,min_unit,max_value,max_unit,recurrence
+Night,1,hour,12,hour,Daily
+Winter / dry season,2,month,6,month,Yearly
+ENSO,6,month,2,year,Every 2-7 years
+Volcanic winter,2,year,4,year,Stochastic
+Impact winter (K-Pg),2,year,30,year,Stochastic
+"Millennial events (YD, D-O)",1000,year,3000,year,Millennial

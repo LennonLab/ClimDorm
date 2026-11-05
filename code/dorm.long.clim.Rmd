@@ -1,0 +1,171 @@
+---
+title: "Dormancy longevity and environmental adversity"
+author: "Angela Zoumplis, Elly Goetz, Jay T. Lennon"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+geometry: margin=2.54cm
+---
+
+This figure compares approximate ranges of dormancy longevity across taxa along
+with the duration of adverse environmental periods.
+
+## Clear workspace and set plotting options
+
+```{r}
+rm(list=ls())
+getwd()
+setwd("~/GitHub/ClimDorm")
+```
+
+## Load packages
+
+```{r}
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(png)
+library(grid)
+```
+
+## Load data
+
+```{r}
+endur <- read.csv("data/endurance_data.csv", na.strings="", stringsAsFactors=FALSE)
+adver <- read.csv("data/adversity_data.csv", stringsAsFactors=FALSE)
+
+# Convert recorded duration values to years for plotting.
+unit_to_year <- c(
+  hour=1/(24*365.25),
+  day=1/365.25,
+  week=7/365.25,
+  month=1/12,
+  year=1
+)
+
+convert_to_years <- function(value, unit) {
+  conversion <- unname(unit_to_year[unit])
+  if (any(!is.na(value) & is.na(conversion))) {
+    stop("Unknown or missing unit for a non-missing duration value.")
+  }
+  value * conversion
+}
+
+endur$min_yr <- convert_to_years(endur$min_value, endur$min_unit)
+endur$max_yr <- convert_to_years(endur$max_value, endur$max_unit)
+adver$min_yr <- convert_to_years(adver$min_value, adver$min_unit)
+adver$max_yr <- convert_to_years(adver$max_value, adver$max_unit)
+```
+
+## Define the shared time-axis and theme
+
+```{r}
+axis_breaks <- 10^seq(-6, 7, by=1)
+axis_labels <- function(x) {
+  parse(text=paste0("10^", round(log10(x))))
+}
+
+common <- theme_minimal(base_size=11) +
+  theme(
+    panel.grid.minor=element_blank(),
+    panel.grid.major.y=element_blank(),
+    panel.grid.major.x=element_line(color="#e6e8eb", linewidth=.3),
+    plot.title.position="panel",
+    plot.title=element_text(face="bold", size=13, hjust=0.5),
+    axis.title.y=element_blank(),
+    axis.text.y=element_text(color="#30343b", size=9),
+    plot.margin=margin(10, 18, 6, 12)
+  )
+```
+
+## Dormancy endurance
+
+```{r}
+# Reverse factor order so the first row in the CSV appears at the top.
+endur <- endur %>%
+  mutate(taxon=factor(taxon, levels=rev(taxon)))
+
+p1 <- ggplot(endur, aes(y=taxon)) +
+  # This block creates the shaded region.
+  # annotate(
+  #   "rect", xmin=1, xmax=10, ymin=-Inf, ymax=Inf,
+  #   fill="#dcefe8", alpha=.65
+  # ) +
+  geom_segment(
+    data=filter(endur, !is.na(min_yr)),
+    aes(x=min_yr, xend=max_yr, yend=taxon),
+    linewidth=4, color="#2876d0", lineend="round"
+  ) +
+  geom_point(
+    data=filter(endur, is.na(min_yr)),
+    aes(x=max_yr),
+    color="#2876d0", size=2.7, shape=1, stroke=1.2
+  ) +
+  scale_x_log10(
+    limits=c(1e-6, 1e7),
+    breaks=axis_breaks,
+    labels=axis_labels
+  ) +
+  scale_y_discrete(labels=c("Daphnia ephippia" = expression(italic(Daphnia)~"ephippia"))) +
+  labs(
+    title="How long can dormant organisms persist?",
+    x=NULL
+  ) +
+  common +
+  theme(
+    axis.text.x=element_blank(),
+    axis.ticks.x=element_blank()
+  )
+
+p1
+```
+
+## Duration of adverse periods
+
+```{r adversity-plot}
+adver <- adver %>%
+  mutate(event=factor(event, levels=rev(event)))
+
+p2 <- ggplot(adver, aes(y=event)) +
+  # This block creates the shaded region; it is commented out.
+  # annotate(
+  #   "rect", xmin=1, xmax=10, ymin=-Inf, ymax=Inf,
+  #   fill="#dcefe8", alpha=.65
+  # ) +
+  geom_segment(
+    aes(x=min_yr, xend=max_yr, yend=event),
+    linewidth=4, color="#ec704c", lineend="round"
+  ) +
+  scale_x_log10(
+    limits=c(1e-6, 1e7),
+    breaks=axis_breaks,
+    labels=axis_labels
+  ) +
+  labs(
+    title="How long do bad periods last?",
+    x="Duration (years)"
+  ) +
+  common
+
+p2
+```
+
+## Combine and save the figure
+
+```{r combined-figure, fig.width=12, fig.height=9}
+fig <- (p1 / p2) +
+  plot_layout(heights=c(1.4, 1)) +
+  plot_annotation(
+    # title="Clipping has a budget: endurance vs adversity on one time axis",
+    # caption="Approximate ranges; open circles indicate unknown lower bounds."
+  ) &
+  theme(
+    plot.background=element_rect(fill="white", color=NA)
+  )
+
+ggsave("figures/dorm.long.clim.pdf", fig, width=12, height=9)
+ggsave("figures/dorm.long.clim.png", fig, width=12, height=9, dpi=300)
+
+img <- readPNG("figures/dorm.long.clim.png")
+grid.newpage()
+grid.raster(img)
+```  
