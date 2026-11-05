@@ -1,0 +1,12 @@
+taxon,min_value,min_unit,max_value,max_unit
+Bacteria,0.016666666666666666,hour,1000000,year
+Plant seeds,3,day,2000,year
+Daphnia ephippia,3,day,700,year
+Bdelloid rotifers,1,week,24000,year
+Yucca moth,1,week,30,year
+Frogs,1,week,2,year
+African lungfish,1,week,7,year
+Birds,1,hour,1,week
+Mammals,1,hour,1,year
+Diatoms,,,7000,year
+Dinoflagellates,,,100,year
